@@ -4,9 +4,7 @@ import sys
 import os
 import json
 
-# Add the agents directory to the Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from doc_loader.news_loader import get_week_tag
+from agents.doc_loader.news_loader import get_week_tag
 
 from langchain_core.prompts.chat import (
     ChatPromptTemplate,

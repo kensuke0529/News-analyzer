@@ -5,9 +5,6 @@ import sys
 import os
 import json
 
-# Add the agents directory to the Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 from langchain_core.prompts.chat import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
@@ -19,7 +16,6 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 
 from dotenv import load_dotenv
-
 
 # Load environment variables
 load_dotenv()
@@ -60,6 +56,8 @@ except json.JSONDecodeError as e:
     sys.exit(1)
 
 # Store for chat histories (in production, use a proper database)
+# For serverless deployment, we'll use a simple in-memory store
+# Note: This will reset on each cold start, but is acceptable for demo purposes
 store = {}
 
 def get_session_history(session_id: str) -> BaseChatMessageHistory:

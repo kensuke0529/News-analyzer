@@ -1,0 +1,18 @@
+# Exclude from Vercel deployment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+ENV/
+.git/
+.gitignore
+README.md
+VERCEL_DEPLOYMENT.md
+chroma_langchain_db/
+*.log
+.DS_Store
+.vscode/
+.idea/
