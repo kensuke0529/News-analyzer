@@ -1,4 +1,4 @@
-# AI News Analyst
+ **Summery**  
 Cut through the AI news noise—**AI News Analyst** is an intelligent news platform designed to help busy professionals, researchers and students stay on top of AI trends.  
 Get concise weekly summaries, and deep article insights by RAG(retrieval-augmented generation).
 
