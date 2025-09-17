@@ -17,21 +17,11 @@ model_name = "sentence-transformers/all-mpnet-base-v2"
 embeddings = HuggingFaceEmbeddings(model_name=model_name)
 
 # Create or load vector store
-# For Vercel deployment, use in-memory storage instead of persistent directory
-import os
-if os.environ.get("VERCEL"):
-    # Serverless environment - use in-memory storage
-    vector_store = Chroma(
-        collection_name="example_collection",
-        embedding_function=embeddings,
-    )
-else:
-    # Local development - use persistent storage
-    vector_store = Chroma(
-        collection_name="example_collection",
-        embedding_function=embeddings,
-        persist_directory="./chroma_langchain_db",
-    )
+vector_store = Chroma(
+    collection_name="example_collection",
+    embedding_function=embeddings,
+    persist_directory="./chroma_langchain_db",
+)
 
 def news_embedding(data_file, week_tag=None):
     if not data_file.exists():
@@ -174,26 +164,10 @@ def initialize_vector_store():
         return
         
     try:
-        # Check if vector store already has data
-        try:
-            existing_count = vector_store._collection.count()
-            if existing_count > 0:
-                print(f"Vector store already initialized with {existing_count} documents")
-                return
-        except Exception:
-            pass
-        
         all_articles = load_all_articles()
         if not all_articles:
             print("No articles found to embed")
             return
-        
-<<<<<<< HEAD
-        # Limit articles for serverless deployment to prevent memory issues
-        max_articles = 100 if os.environ.get("VERCEL") else len(all_articles)
-        if len(all_articles) > max_articles:
-            print(f"Limiting to {max_articles} articles for serverless deployment")
-            all_articles = all_articles[:max_articles]
         
         # Get existing links
         existing_links = set()
@@ -205,39 +179,33 @@ def initialize_vector_store():
         except Exception:
             pass
         
-=======
->>>>>>> 9898fb40f4c391266a42935b29adf906ebf5db66
         docs_to_add = []
         for article in all_articles:
-            # Truncate summary for memory efficiency
-            summary = article.get('summary') or article.get('description') or article.get('content', '')
-            if len(summary) > 300:  # Limit summary length
-                summary = summary[:300] + "..."
+            # Get summary or description, fallback to content if neither exists
+            summary = article.get('summary') or article.get('description') or article.get('content', '')[:500] + "..."
             source = article.get('source', 'Unknown')
             content = f"title: {article['title']} | summary: {summary} | link: {article['link']} | source: {source}"
-            docs_to_add.append(Document(
-                page_content=content,
-                metadata={
-                    "link": article['link'],
-                    "week": article['week'],
-                    "title": article['title'],
-                    "source": source
-                }
-            ))
+            if article['link'] not in existing_links:
+                docs_to_add.append(Document(
+                    page_content=content,
+                    metadata={
+                        "link": article['link'],
+                        "week": article['week'],
+                        "title": article['title'],
+                        "source": source
+                    }
+                ))
         
         if docs_to_add:
             vector_store.add_documents(docs_to_add)
-            print(f"Added {len(docs_to_add)} documents to vector store.")
+            print(f"Added {len(docs_to_add)} new documents to vector store.")
         else:
-            print("No documents to add.")
+            print("No new documents to add.")
             
         _vector_store_initialized = True
             
     except Exception as e:
         print(f"Error initializing vector store: {e}")
-        # Don't raise the exception in production
-        import traceback
-        traceback.print_exc()
 
 # Only run if this script is executed directly
 if __name__ == "__main__":

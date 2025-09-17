@@ -26,9 +26,6 @@ try:
 except Exception as e:
     print(f"⚠️ Warning: Could not initialize vector store: {e}")
     print("Search functionality may not work properly")
-    # In serverless environment, don't fail completely
-    if os.environ.get("VERCEL"):
-        print("Running in serverless mode - continuing without vector store")
 
 # ----------------------
 # Load news data function
@@ -151,7 +148,6 @@ def get_available_weeks():
 def search_articles(query, week_filter=None, limit=10):
     try:
         if not vector_store:
-            print("Vector store not available - returning empty results")
             return []
 
         docs_scores = vector_store.similarity_search_with_score(query, k=limit*2)
@@ -205,7 +201,6 @@ def search_articles(query, week_filter=None, limit=10):
 
     except Exception as e:
         print(f"Error searching articles: {e}")
-        # Return empty results instead of crashing
         return []
 
 # ----------------------
