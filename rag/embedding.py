@@ -174,11 +174,21 @@ def initialize_vector_store():
         return
         
     try:
+        # Check if vector store already has data
+        try:
+            existing_count = vector_store._collection.count()
+            if existing_count > 0:
+                print(f"Vector store already initialized with {existing_count} documents")
+                return
+        except Exception:
+            pass
+        
         all_articles = load_all_articles()
         if not all_articles:
             print("No articles found to embed")
             return
         
+<<<<<<< HEAD
         # Limit articles for serverless deployment to prevent memory issues
         max_articles = 100 if os.environ.get("VERCEL") else len(all_articles)
         if len(all_articles) > max_articles:
@@ -195,6 +205,8 @@ def initialize_vector_store():
         except Exception:
             pass
         
+=======
+>>>>>>> 9898fb40f4c391266a42935b29adf906ebf5db66
         docs_to_add = []
         for article in all_articles:
             # Truncate summary for memory efficiency
@@ -203,27 +215,29 @@ def initialize_vector_store():
                 summary = summary[:300] + "..."
             source = article.get('source', 'Unknown')
             content = f"title: {article['title']} | summary: {summary} | link: {article['link']} | source: {source}"
-            if article['link'] not in existing_links:
-                docs_to_add.append(Document(
-                    page_content=content,
-                    metadata={
-                        "link": article['link'],
-                        "week": article['week'],
-                        "title": article['title'],
-                        "source": source
-                    }
-                ))
+            docs_to_add.append(Document(
+                page_content=content,
+                metadata={
+                    "link": article['link'],
+                    "week": article['week'],
+                    "title": article['title'],
+                    "source": source
+                }
+            ))
         
         if docs_to_add:
             vector_store.add_documents(docs_to_add)
-            print(f"Added {len(docs_to_add)} new documents to vector store.")
+            print(f"Added {len(docs_to_add)} documents to vector store.")
         else:
-            print("No new documents to add.")
+            print("No documents to add.")
             
         _vector_store_initialized = True
             
     except Exception as e:
         print(f"Error initializing vector store: {e}")
+        # Don't raise the exception in production
+        import traceback
+        traceback.print_exc()
 
 # Only run if this script is executed directly
 if __name__ == "__main__":

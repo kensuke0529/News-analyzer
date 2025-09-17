@@ -8,6 +8,8 @@ from news_loader import *
 from techmeme_loader import *
 from unified_news_loader import *
 from pathlib import Path
+from datetime import datetime, timedelta
+import time
 
 load_dotenv()
 OPEN_AI_KEY = os.environ.get("OPENAI_API_KEY")
@@ -15,6 +17,21 @@ OPEN_AI_KEY = os.environ.get("OPENAI_API_KEY")
 llm = ChatOpenAI(model="gpt-4o-mini", api_key=OPEN_AI_KEY)
 output_parser = StrOutputParser()
 rss_url = "https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml"
+
+def _sleep_until(target_dt: datetime):
+    """Sleep until the specified datetime (local time)."""
+    now = datetime.now()
+    seconds = (target_dt - now).total_seconds()
+    if seconds > 0:
+        time.sleep(seconds)
+
+def _next_run_datetime(hour: int, minute: int = 0) -> datetime:
+    """Get the next datetime (today or tomorrow) at the specified local time."""
+    now = datetime.now()
+    candidate = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if candidate <= now:
+        candidate = candidate + timedelta(days=1)
+    return candidate
 
 def main():
     """Main function to run the news processing pipeline"""
@@ -54,6 +71,32 @@ def main():
         traceback.print_exc()
 
 
+def run_daily(hour: int = 7, minute: int = 0):
+    """Run the pipeline every day in the morning at the given local time.
+
+    Defaults to 07:00 local time. Adjust hour/minute if needed.
+    """
+    print("=" * 50)
+    print(f"⏰ Daily scheduler started. Will run every day at {hour:02d}:{minute:02d} (local time).")
+    print("Press Ctrl+C to stop.")
+    print("=" * 50)
+    try:
+        while True:
+            next_run = _next_run_datetime(hour, minute)
+            print(f"🕗 Next run scheduled at: {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
+            _sleep_until(next_run)
+            print("\n🚀 Starting scheduled run...")
+            try:
+                main()
+            except Exception as run_err:
+                print(f"❌ Scheduled run failed: {run_err}")
+            # After run, schedule the next day
+            # Small sleep to avoid tight loop in case run finished exactly at boundary
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\n🛑 Daily scheduler stopped by user.")
+
+
 if __name__ == "__main__":
     import sys
     
@@ -64,6 +107,25 @@ if __name__ == "__main__":
         if command == "auto":
             # Run the full automated pipeline
             main()
+        elif command == "daily":
+            # Run the pipeline every morning at a specified time
+            # Usage examples:
+            #   python3 main.py daily            -> runs at 07:00
+            #   python3 main.py daily 8         -> runs at 08:00
+            #   python3 main.py daily 6 30      -> runs at 06:30
+            hour = 7
+            minute = 0
+            if len(sys.argv) >= 3:
+                try:
+                    hour = int(sys.argv[2])
+                except ValueError:
+                    pass
+            if len(sys.argv) >= 4:
+                try:
+                    minute = int(sys.argv[3])
+                except ValueError:
+                    pass
+            run_daily(hour=hour, minute=minute)
         elif command == "news":
             # Only run news processing (steps 1-3)
             print("🕐 Running news processing only...")
@@ -133,6 +195,7 @@ if __name__ == "__main__":
         else:
             print("Usage:")
             print("  python3 main.py auto          - Run full automated pipeline (all sources)")
+            print("  python3 main.py daily [h] [m] - Run daily at h:m (default 07:00)")
             print("  python3 main.py news          - Run news processing only (all sources)")
             print("  python3 main.py week <week>   - Process specific week (all sources)")
             print("  python3 main.py fetch         - Fetch from all news sources only")

@@ -12,6 +12,11 @@ import markdown
 
 load_dotenv()
 
+# Check for required environment variables
+if not os.environ.get('OPENAI_API_KEY'):
+    print("⚠️ Warning: OPENAI_API_KEY not found in environment variables")
+    print("AI functionality (chat and summary) will not work without this key")
+
 app = Flask(__name__)
 
 # Initialize vector store on startup
@@ -212,6 +217,11 @@ def index():
     available_weeks = get_available_weeks()
     return render_template('index.html', news_data=news_data, available_weeks=available_weeks)
 
+@app.route('/health')
+def health():
+    """Health check endpoint for deployment monitoring"""
+    return jsonify({"status": "healthy", "message": "AI News Analyst is running"})
+
 @app.route('/api/news')
 def api_news():
     week_tag = request.args.get('week', None)
@@ -349,4 +359,6 @@ def api_chat():
 # Run server
 # ----------------------
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5133)
+    port = int(os.environ.get('PORT', 5024))
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    app.run(debug=debug, host='0.0.0.0', port=port)
